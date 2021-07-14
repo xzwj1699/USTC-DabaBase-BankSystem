@@ -1,0 +1,496 @@
+<template>
+  <div class="app-container">
+    <div class="filter-container">
+      <el-input v-model="listQuery.Client_ID" placeholder="id" style="width: 50px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.name" placeholder="name" style="width: 80px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.tel" placeholder="tel" style="width: 120px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.addr" placeholder="addr" style="width: 120px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.contact_name" placeholder="con_name" style="width: 120px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.contact_tel" placeholder="con_addr" style="width: 120px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.contact_email" placeholder="con_email" style="width: 200px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-input v-model="listQuery.relation" placeholder="relation" style="width: 120px;margin-left: 10px;" class="filter-item" @keyup.enter.native="handleFilter" />
+      <el-button v-waves class="filter-item" style="margin-left: 10px" type="primary" icon="el-icon-search" @click="handleFilter">
+        Search
+      </el-button>
+      <el-button class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
+        Add
+      </el-button>
+      <!-- <el-button v-waves :loading="downloadLoading" class="filter-item" type="primary" icon="el-icon-download" @click="handleDownload">
+        Export
+      </el-button> -->
+      <!-- <el-checkbox v-model="showReviewer" class="filter-item" style="margin-left:15px;" @change="tableKey=tableKey+1">
+        reviewer
+      </el-checkbox> -->
+    </div>
+
+    <el-table
+      :key="tableKey"
+      v-loading="listLoading"
+      :data="list"
+      border
+      fit
+      highlight-current-row
+      style="width: 100%;"
+      @sort-change="sortChange"
+    >
+      <el-table-column label="Client_ID" prop="id" align="center" width="101px" :class-name="getSortClass('id')">
+        <template slot-scope="{row}">
+          <span>{{ row[0] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="name" width="100px" align="center">
+        <template slot-scope="{row}">
+          <span>{{ row[1] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="tel" width="140px">
+        <template slot-scope="{row}">
+          <span>{{ row[2] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="addr" width="150px" align="center">
+        <template slot-scope="{row}">
+          <span>{{ row[3] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="contact_name" width="150px" align="center">
+        <template slot-scope="{row}">
+          <span>{{ row[4] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="contact_tel" width="140px">
+        <template slot-scope="{row}">
+          <span>{{ row[5] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="contact_email" width="200px">
+        <template slot-scope="{row}">
+          <span>{{ row[6] }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="relation" width="140px">
+        <template slot-scope="{row}">
+          <span>{{ row[7] }}</span>
+        </template>
+      </el-table-column>
+      <!-- <el-table-column label="Readings" align="center" width="95">
+        <template slot-scope="{row}">
+          <span v-if="row.pageviews" class="link-type" @click="handleFetchPv(row.pageviews)">{{ row.pageviews }}</span>
+          <span v-else>0</span>
+        </template>
+      </el-table-column> -->
+      <!-- <el-table-column label="Status" class-name="status-col" width="100">
+        <template slot-scope="{row}">
+          <el-tag :type="row.status | statusFilter">
+            {{ row.status }}
+          </el-tag>
+        </template>
+      </el-table-column> -->
+      <el-table-column label="Actions" align="center" width="235px" class-name="small-padding fixed-width">
+        <template slot-scope="{row,$index}">
+          <el-button type="primary" size="mini" @click="handleUpdate(row)">
+            Edit
+          </el-button>
+          <el-button v-if="row.status!='deleted'" size="mini" type="danger" @click="handleDelete(row,$index)">
+            Delete
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <pagination v-show="total>0" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" @pagination="getList" />
+
+    <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
+      <el-form ref="dataForm" :rules="rules" :model="temp" label-position="left" label-width="120px" style="width: 400px; margin-left:50px;">
+        <el-form-item label="Client_ID" prop="id">
+          <el-input v-model="temp.Client_ID" :disabled="id_disabled" />
+        </el-form-item>
+        <el-form-item label="name" prop="name">
+          <el-input v-model="temp.name" />
+        </el-form-item>
+        <el-form-item label="Tel" prop="Tel">
+          <el-input v-model="temp.tel" />
+        </el-form-item>
+        <el-form-item label="addr" prop="addr">
+          <el-input v-model="temp.addr" />
+        </el-form-item>
+        <el-form-item label="contact_name" prop="contact_name">
+          <el-input v-model="temp.contact_name" />
+        </el-form-item>
+        <el-form-item label="contact_tel" prop="contact_tel">
+          <el-input v-model="temp.contact_tel" />
+        </el-form-item>
+        <el-form-item label="contact_email" prop="contact_email">
+          <el-input v-model="temp.contact_email" />
+        </el-form-item>
+        <el-form-item label="relation" prop="relation">
+          <el-input v-model="temp.relation" />
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">
+          Cancel
+        </el-button>
+        <el-button type="primary" @click="dialogStatus==='create'?createData():updateData()">
+          Confirm
+        </el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog :visible.sync="dialogPvVisible" title="Reading statistics">
+      <el-table :data="pvData" border fit highlight-current-row style="width: 100%">
+        <el-table-column prop="key" label="Channel" />
+        <el-table-column prop="pv" label="Pv" />
+      </el-table>
+      <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="dialogPvVisible = false">Confirm</el-button>
+      </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import waves from '@/directive/waves' // waves directive
+import { parseTime } from '@/utils'
+import Pagination from '@/components/Pagination' // secondary package based on el-pagination
+import { search_guest, add_guest, delete_guest, update_guest } from '@/api/guest'
+const calendarTypeOptions = [
+  { key: 'CN', display_name: 'China' },
+  { key: 'US', display_name: 'USA' },
+  { key: 'JP', display_name: 'Japan' },
+  { key: 'EU', display_name: 'Eurozone' }
+]
+
+// arr to obj, such as { CN : "China", US : "USA" }
+const calendarTypeKeyValue = calendarTypeOptions.reduce((acc, cur) => {
+  acc[cur.key] = cur.display_name
+  return acc
+}, {})
+
+export default {
+  name: 'Guest',
+  components: { Pagination },
+  directives: { waves },
+  filters: {
+    statusFilter(status) {
+      const statusMap = {
+        published: 'success',
+        draft: 'info',
+        deleted: 'danger'
+      }
+      return statusMap[status]
+    },
+    typeFilter(type) {
+      return calendarTypeKeyValue[type]
+    }
+  },
+  data() {
+    return {
+      tableKey: 0,
+      list: null,
+      data: null,
+      total: 0,
+      listLoading: true,
+      id_disabled: true,
+      listQuery: {
+        page: 1,
+        Client_ID: '',
+        name: '',
+        tel: '',
+        addr: '',
+        contact_name: '',
+        contact_tel: '',
+        contact_email: '',
+        relation: '',
+        sort: '+id'
+      },
+      importanceOptions: [1, 2, 3],
+      calendarTypeOptions,
+      sortOptions: [{ label: 'ID Ascending', key: '+id' }, { label: 'ID Descending', key: '-id' }],
+      statusOptions: ['published', 'draft', 'deleted'],
+      showReviewer: false,
+      backup_before_update: {
+        Client_ID: '',
+        name: 'xzwj',
+        tel: 10000000000,
+        addr: '',
+        contact_name: '',
+        contact_tel: 10000000000,
+        contact_email: '',
+        relation: ''
+      },
+      temp: {
+        Client_ID: '',
+        name: 'xzwj',
+        tel: 10000000000,
+        addr: '',
+        contact_name: '',
+        contact_tel: 10000000000,
+        contact_email: '',
+        relation: ''
+      },
+      dialogFormVisible: false,
+      dialogStatus: '',
+      textMap: {
+        update: 'Edit',
+        create: 'Create'
+      },
+      dialogPvVisible: false,
+      pvData: [],
+      rules: {
+        type: [{ required: true, message: 'type is required', trigger: 'change' }],
+        timestamp: [{ type: 'date', required: true, message: 'timestamp is required', trigger: 'change' }],
+        title: [{ required: true, message: 'title is required', trigger: 'blur' }]
+      },
+      downloadLoading: false
+    }
+  },
+  created() {
+    this.getList()
+  },
+  methods: {
+    getList() {
+      this.listLoading = true
+      var data = {
+        Client_ID: '',
+        name: '',
+        tel: '',
+        addr: '',
+        contact_name: '',
+        contact_tel: '',
+        contact_email: '',
+        relation: '',
+        token: this.$store.getters.token
+      }
+      console.log(data)
+      // console.log('debug 2')
+      search_guest(data).then(response => {
+        console.log(response.data)
+        this.list = response.data
+        // this.total = response.data.total
+        this.listLoading = false
+        // Just to simulate the time of the request
+        setTimeout(() => {
+          this.listLoading = false
+        }, 1.5 * 1000)
+      })
+    },
+    handleFilter() {
+      // console.log('debug 1')
+      var data = {
+        Client_ID: this.listQuery.Client_ID,
+        name: this.listQuery.name,
+        tel: this.listQuery.tel,
+        addr: this.listQuery.addr,
+        contact_name: this.listQuery.contact_name,
+        contact_tel: this.listQuery.contact_tel,
+        contact_email: this.listQuery.contact_email,
+        relation: this.listQuery.relation
+      }
+      console.log(data)
+      // console.log('debug 2')
+      search_guest(data).then(response => {
+        console.log(response.data)
+        this.list = response.data
+        // this.total = response.data.total
+        this.listLoading = false
+        // Just to simulate the time of the request
+        setTimeout(() => {
+          this.listLoading = false
+        }, 1.5 * 1000)
+      })
+    },
+    sortChange(data) {
+      const { prop, order } = data
+      if (prop === 'id') {
+        this.sortByID(order)
+      }
+    },
+    sortByID(order) {
+      if (order === 'ascending') {
+        this.listQuery.sort = '+id'
+      } else {
+        this.listQuery.sort = '-id'
+      }
+      this.handleFilter()
+    },
+    resetTemp() {
+      this.temp = {
+        Client_ID: undefined,
+        name: 'sss',
+        tel: '12256487956',
+        addr: 'ustc 2020',
+        contact_name: 'xsx',
+        contact_tel: '5521124',
+        contact_email: 'xzwj#mia',
+        relation: 'xsa'
+      }
+    },
+    setTemp(row) {
+      this.temp = {
+        Client_ID: row[0],
+        name: row[1],
+        tel: row[2],
+        addr: row[3],
+        contact_name: row[4],
+        contact_tel: row[5],
+        contact_email: row[6],
+        relation: row[7]
+      }
+    },
+    back_up(row) {
+      this.backup_before_update = {
+        Client_ID: row[0],
+        name: row[1],
+        tel: row[2],
+        addr: row[3],
+        contact_name: row[4],
+        contact_tel: row[5],
+        contact_email: row[6],
+        relation: row[7]
+      }
+    },
+    handleCreate() {
+      this.resetTemp()
+      this.id_disabled = false
+      this.dialogStatus = 'create'
+      this.dialogFormVisible = true
+      this.$nextTick(() => {
+        this.$refs['dataForm'].clearValidate()
+      })
+    },
+    createData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          var data = {
+            Client_ID: this.temp.Client_ID,
+            name: this.temp.name,
+            tel: this.temp.tel,
+            addr: this.temp.addr,
+            contact_name: this.temp.contact_name,
+            contact_tel: this.temp.contact_tel,
+            contact_email: this.temp.contact_email,
+            relation: this.temp.relation
+          }
+          console.log(data)
+          // console.log('debug 2')
+          add_guest(data).then(response => {
+            console.log(response.data)
+            this.list = response.data
+            // this.total = response.data.total
+            this.listLoading = false
+            // Just to simulate the time of the request
+            this.dialogFormVisible = false
+            this.$notify({
+              title: 'Success',
+              message: 'Created Successfully',
+              type: 'success',
+              duration: 2000
+            })
+            setTimeout(() => {
+              this.listLoading = false
+            }, 1.5 * 1000)
+          })
+        }
+      })
+    },
+    handleUpdate(row) {
+      this.setTemp(row)
+      this.dialogStatus = 'update'
+      this.id_disabled = true
+      this.dialogFormVisible = true
+      console.log(row)
+      this.back_up(row)
+      this.$nextTick(() => {
+        this.$refs['dataForm'].clearValidate()
+      })
+    },
+    updateData() {
+      this.$refs['dataForm'].validate((valid) => {
+        if (valid) {
+          var data = {
+            old_value: this.backup_before_update,
+            new_value: this.temp,
+          }
+          console.log(data)
+          // console.log('debug 2')
+          update_guest(data).then(response => {
+            console.log(response.data)
+            this.listLoading = false
+            this.list = response.data
+            this.dialogFormVisible = false
+            this.$notify({
+              title: 'Success',
+              message: 'Update Successfully',
+              type: 'success',
+              duration: 2000
+            })
+            setTimeout(() => {
+              this.listLoading = false
+            }, 1.5 * 1000)
+          })
+        }
+      })
+    },
+    handleDelete(row, index) {
+      this.listLoading = false
+      var data = {
+        Client_ID: row[0],
+        name: row[1],
+        tel: row[2],
+        addr: row[3],
+        contact_name: row[4],
+        contact_tel: row[5],
+        contact_email: row[6],
+        relation: row[7]
+      }
+      console.log(data)
+      // console.log('debug 2')
+      delete_guest(data).then(response => {
+        console.log(response.data)
+        this.list = response.data
+        // this.total = response.data.total
+        this.listLoading = false
+        // Just to simulate the time of the request
+        this.dialogFormVisible = false
+        this.$notify({
+          title: 'Success',
+          message: 'Delete Successfully',
+          type: 'success',
+          duration: 2000
+        })
+        setTimeout(() => {
+          this.listLoading = false
+        }, 1.5 * 1000)
+      })
+    },
+    handleDownload() {
+      this.downloadLoading = true
+      import('@/vendor/Export2Excel').then(excel => {
+        const tHeader = ['timestamp', 'title', 'type', 'importance', 'status']
+        const filterVal = ['timestamp', 'title', 'type', 'importance', 'status']
+        const data = this.formatJson(filterVal)
+        excel.export_json_to_excel({
+          header: tHeader,
+          data,
+          filename: 'table-list'
+        })
+        this.downloadLoading = false
+      })
+    },
+    formatJson(filterVal) {
+      return this.list.map(v => filterVal.map(j => {
+        if (j === 'timestamp') {
+          return parseTime(v[j])
+        } else {
+          return v[j]
+        }
+      }))
+    },
+    getSortClass: function(key) {
+      const sort = this.listQuery.sort
+      return sort === `+${key}` ? 'ascending' : 'descending'
+    }
+  }
+}
+</script>
